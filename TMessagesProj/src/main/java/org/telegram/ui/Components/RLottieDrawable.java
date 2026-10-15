@@ -632,6 +632,16 @@ public class RLottieDrawable extends BitmapDrawable implements Animatable, Bitma
         this.onAnimationEndListener = onAnimationEndListener;
     }
 
+    // Compatibility with Telegram/NagramX call sites that pass a legacy cache name.
+    // Resource-based animations are now keyed using ResLottieMeta instead.
+    public RLottieDrawable(@RawRes int rawRes, String name, int w, int h) {
+        this(rawRes, w, h, true, null);
+    }
+
+    public RLottieDrawable(@RawRes int rawRes, String name, int w, int h, boolean startDecode, int[] colorReplacement) {
+        this(rawRes, w, h, startDecode, colorReplacement);
+    }
+
     public RLottieDrawable(@RawRes int rawRes, int w, int h) {
         this(rawRes, w, h, true, null);
     }

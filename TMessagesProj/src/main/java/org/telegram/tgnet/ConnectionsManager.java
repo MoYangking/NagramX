@@ -772,6 +772,11 @@ public class ConnectionsManager extends BaseController {
         return lastPauseTime;
     }
 
+    public long checkProxy(org.telegram.utils.proxy.ProxySettings settings, RequestTimeDelegate delegate) {
+        return checkProxy(settings.getAddress(), settings.getPort(), settings.getUser(),
+                settings.getPassword(), settings.getSecret(), delegate);
+    }
+
     public long checkProxy(String address, int port, String username, String password, String secret, RequestTimeDelegate requestTimeDelegate) {
         if (TextUtils.isEmpty(address)) {
             return 0;
@@ -992,6 +997,11 @@ public class ConnectionsManager extends BaseController {
 
     public static void onInternalPushReceived(final int currentAccount) {
         KeepAliveJob.startJob();
+    }
+
+    public static void setProxySettings(boolean enabled, org.telegram.utils.proxy.ProxySettings settings) {
+        setProxySettings(enabled, settings.getAddress(), settings.getPort(), settings.getUser(),
+                settings.getPassword(), settings.getSecret());
     }
 
     public static void setProxySettings(boolean enabled, String address, int port, String username, String password, String secret) {

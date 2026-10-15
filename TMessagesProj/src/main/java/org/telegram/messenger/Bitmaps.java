@@ -110,6 +110,16 @@ public class Bitmaps {
             (byte) 0xD9
     };
 
+    // Keep legacy Telegram bitmap helpers available to both fork and upstream code.
+    public static Bitmap createScaledBitmap(Bitmap source, int width, int height, boolean filter) {
+        return Bitmap.createScaledBitmap(source, width, height, filter);
+    }
+
+    public static Bitmap createBitmap(Bitmap source, int x, int y, int width, int height,
+                                      android.graphics.Matrix matrix, boolean filter) {
+        return Bitmap.createBitmap(source, x, y, width, height, matrix, filter);
+    }
+
     public static Bitmap createBitmap(int width, int height, Bitmap.Config config) {
         Bitmap bitmap = Bitmap.createBitmap(width, height, config);
         if (config == Bitmap.Config.ARGB_8888 || config == Bitmap.Config.ARGB_4444) {

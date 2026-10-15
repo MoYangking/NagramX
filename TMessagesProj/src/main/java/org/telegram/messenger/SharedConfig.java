@@ -420,6 +420,12 @@ public class SharedConfig {
             }
         }
 
+        // Telegram 13 proxy-link sheet passes the structured settings object.
+        // Preserve NagramX's existing proxy model and persisted credentials.
+        public ProxyInfo(org.telegram.utils.proxy.ProxySettings settings) {
+            this(settings.getAddress(), settings.getPort(), settings.getUser(), settings.getPassword(), settings.getSecret());
+        }
+
         public String getLink() {
             StringBuilder url = new StringBuilder(!TextUtils.isEmpty(secret) ? "https://t.me/proxy?" : "https://t.me/socks?");
             try {
