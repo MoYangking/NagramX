@@ -124,6 +124,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.dynamicanimation.animation.FloatValueHolder;
 import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
+import org.telegram.ui.Wallet.GramWallet;
 import org.telegram.ui.recyclerview.ChatListItemAnimator;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.GridLayoutManagerFixed;
@@ -226,6 +227,7 @@ import org.telegram.tgnet.tl.TL_iv;
 import org.telegram.tgnet.tl.TL_phone;
 import org.telegram.tgnet.tl.TL_stats;
 import org.telegram.tgnet.tl.TL_stories;
+import org.telegram.tgnet.tl.TL_wallet;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.ActionBarLayout;
 import org.telegram.ui.ActionBar.ActionBarMenu;
@@ -1868,6 +1870,26 @@ public class ChatActivity extends BaseFragment implements
             return result;
         }
     };
+
+    public ChatActionCell findWalletSendLanding(TL_wallet.walletTransaction transaction) {
+        if (chatListView == null || chatAdapter == null) return null;
+        for (int i = 0; i < chatListView.getChildCount(); i++) {
+            View child = chatListView.getChildAt(i);
+            if (child instanceof ChatActionCell
+                    && GramWallet.messageMatchesTransaction(((ChatActionCell) child).getMessageObject(), transaction)) {
+                return (ChatActionCell) child;
+            }
+        }
+        // The pending message can arrive after the destination fragment creates its view.
+        for (int i = 0; i < messages.size(); i++) {
+            if (GramWallet.messageMatchesTransaction(messages.get(i), transaction)) {
+                chatListView.stopScroll();
+                chatLayoutManager.scrollToPositionWithOffset(chatAdapter.messagesStartRow + i, 0);
+                break;
+            }
+        }
+        return null;
+    }
 
     public RecyclerListView getChatListView() {
         return chatListView;
@@ -30486,7 +30508,7 @@ public class ChatActivity extends BaseFragment implements
         int chatWithAdminDate = preferences.getInt("dialog_bar_chat_with_date" + did, 0);
         boolean showAddMembersToGroup = preferences.getBoolean("dialog_bar_invite" + did, false);
         TLRPC.EmojiStatus showEmojiStatusReport = currentUser != null && (showReport || showBlock) ? DialogObject.filterEmojiStatus(currentUser.emoji_status) : null;
-        TL_bots.botVerification showBotVerificationReport = (show && (showReport || showBlock) || shownBotVerification || preferences.getBoolean("dialog_bar_botver" + did, true)) ? (userInfo != null && !UserObject.isUserSelf(currentUser) && userInfo.bot_verification != null ? userInfo.bot_verification : chatInfo != null && chatInfo.bot_verification != null ? chatInfo.bot_verification : null) : null;
+        TL_bots.BotVerification showBotVerificationReport = (show && (showReport || showBlock) || shownBotVerification || preferences.getBoolean("dialog_bar_botver" + did, true)) ? (userInfo != null && !UserObject.isUserSelf(currentUser) && userInfo.bot_verification != null ? userInfo.bot_verification : chatInfo != null && chatInfo.bot_verification != null ? chatInfo.bot_verification : null) : null;
         long showCost = 0;
         if (ChatObject.isMonoForum(currentChat) && ChatObject.canManageMonoForum(currentAccount, currentChat)) {
             TLRPC.TL_forumTopic topic = getMessagesController().getTopicsController().findTopic(-dialog_id, getThreadId());
@@ -39647,8 +39669,8 @@ public class ChatActivity extends BaseFragment implements
                                     messageCell.getViewTreeObserver().removeOnPreDrawListener(this);
                                     ImageReceiver imageReceiver = messageCell.getPhotoImage();
                                     float w = imageReceiver.getImageWidth();
-                                    RectOld rect = instantCameraView.getCameraRect();
-                                    float scale = w / rect.width;
+                                    RectF rect = instantCameraView.getCameraRect();
+                                    float scale = w / rect.width();
                                     int[] position = new int[2];
                                     messageCell.getTransitionParams().ignoreAlpha = true;
                                     messageCell.setAlpha(0.0f);
@@ -39657,8 +39679,10 @@ public class ChatActivity extends BaseFragment implements
                                     position[0] += imageReceiver.getImageX() - messageCell.getAnimationOffsetX();
                                     position[1] += imageReceiver.getImageY() + messageCell.getPaddingTop() - messageCell.getTranslationY();
                                     final InstantCameraView.InstantViewCameraContainer cameraContainer = instantCameraView.getCameraContainer();
-                                    cameraContainer.setPivotX(0.0f);
-                                    cameraContainer.setPivotY(0.0f);
+                                    int[] cameraPosition = new int[2];
+                                    cameraContainer.getLocationOnScreen(cameraPosition);
+                                    cameraContainer.setPivotX(rect.left - cameraPosition[0]);
+                                    cameraContainer.setPivotY(rect.top - cameraPosition[1]);
                                     AnimatorSet animatorSet = new AnimatorSet();
 
                                     cameraContainer.setImageReceiver(imageReceiver);
@@ -39667,13 +39691,13 @@ public class ChatActivity extends BaseFragment implements
                                     animatorSet.playTogether(
                                             ObjectAnimator.ofFloat(cameraContainer, View.SCALE_X, scale),
                                             ObjectAnimator.ofFloat(cameraContainer, View.SCALE_Y, scale),
-                                            ObjectAnimator.ofFloat(cameraContainer, View.TRANSLATION_Y, position[1] - rect.y),
+                                            ObjectAnimator.ofFloat(cameraContainer, View.TRANSLATION_Y, position[1] - rect.top),
                                             ObjectAnimator.ofFloat(instantCameraView.getButtonsLayout(), View.ALPHA, 0.0f),
                                             ObjectAnimator.ofInt(instantCameraView.getPaint(), AnimationProperties.PAINT_ALPHA, 0),
                                             ObjectAnimator.ofFloat(instantCameraView.getMuteImageView(), View.ALPHA, 0.0f)
                                     );
                                     animatorSet.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
-                                    ObjectAnimator o = ObjectAnimator.ofFloat(cameraContainer, View.TRANSLATION_X, position[0] - rect.x);
+                                    ObjectAnimator o = ObjectAnimator.ofFloat(cameraContainer, View.TRANSLATION_X, position[0] - rect.left);
                                     o.setInterpolator(CubicBezierInterpolator.DEFAULT);
 
                                     allAnimators.playTogether(o, animatorSet);
