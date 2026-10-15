@@ -7,9 +7,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.CancellationSignal;
-import android.os.Handler;
-import android.os.Looper;
-import android.hardware.fingerprint.FingerprintManager;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.fragment.app.Fragment;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.FileLog;
@@ -105,7 +105,8 @@ public final class GramWalletStorageAuth {
         boolean credentialStarted;
         int credentialCode;
         CancellationSignal cancellation;
-        AlertDialog fingerprintDialog;
+        BiometricPrompt compatPrompt;
+        Fragment fingerprintHost;
 
         void finish(String error) {
             if (latch.getCount() == 0) return;
@@ -140,37 +141,44 @@ public final class GramWalletStorageAuth {
                             });
         }
 
-        // On M-Q, own the FingerprintManager callback rather than sharing AndroidX 1.1.0's
-        // activity ViewModel with BotBiometry. No Cipher crosses the framework/OEM boundary.
-        @SuppressWarnings("deprecation")
+        // The Android 37 SDK no longer exposes the legacy FingerprintManager API.
+        // Use a dedicated AndroidX fragment as the prompt owner, not the Activity-wide
+        // biometric ViewModel used by BotBiometry, to avoid stealing its callbacks.
         private void fingerprints() {
-            FingerprintManager manager = (FingerprintManager) activity.getSystemService(Context.FINGERPRINT_SERVICE);
-            if (manager == null || !manager.isHardwareDetected() || !manager.hasEnrolledFingerprints()) {
+            int available = BiometricManager.from(activity)
+                    .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG);
+            if (available != BiometricManager.BIOMETRIC_SUCCESS) {
                 credentials();
                 return;
             }
-            cancellation = new CancellationSignal();
-            fingerprintDialog = new AlertDialog.Builder(activity)
+            fingerprintHost = new Fragment();
+            activity.getSupportFragmentManager().beginTransaction()
+                    .add(fingerprintHost, "gram-wallet-biometric-" + System.identityHashCode(this))
+                    .commitNowAllowingStateLoss();
+            compatPrompt = new BiometricPrompt(fingerprintHost, activity.getMainExecutor(),
+                    new BiometricPrompt.AuthenticationCallback() {
+                        @Override
+                        public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                            if (waiting() && !credentialStarted) finish(null);
+                        }
+
+                        @Override
+                        public void onAuthenticationError(int code, CharSequence message) {
+                            if (!waiting() || credentialStarted) return;
+                            if (code == BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
+                                credentials();
+                            } else if (code == BiometricPrompt.ERROR_CANCELED
+                                    || code == BiometricPrompt.ERROR_USER_CANCELED) {
+                                finish("AUTH_CANCELED");
+                            } else {
+                                credentials();
+                            }
+                        }
+                    });
+            compatPrompt.authenticate(new BiometricPrompt.PromptInfo.Builder()
                     .setTitle(LocaleController.getString(R.string.WalletUnlock))
-                    .setMessage(LocaleController.getString(R.string.WalletTouchFingerprint))
-                    .setNegativeButton(LocaleController.getString(R.string.Cancel), (dialog, which) -> finish("AUTH_CANCELED"))
-                    .setPositiveButton(LocaleController.getString(R.string.WalletUseDevicePasscode), (dialog, which) -> credentials())
-                    .setOnCancelListener(dialog -> finish("AUTH_CANCELED"))
-                    .show();
-            manager.authenticate(null, cancellation, 0, new FingerprintManager.AuthenticationCallback() {
-                @Override public void onAuthenticationSucceeded(FingerprintManager.AuthenticationResult result) { if (!credentialStarted) finish(null); }
-                @Override public void onAuthenticationFailed() {
-                    if (waiting() && fingerprintDialog != null) fingerprintDialog.setMessage(LocaleController.getString(R.string.WalletFingerprintRetry));
-                }
-                @Override public void onAuthenticationHelp(int code, CharSequence message) {
-                    if (waiting() && fingerprintDialog != null) fingerprintDialog.setMessage(message);
-                }
-                @Override public void onAuthenticationError(int code, CharSequence message) {
-                    if (!waiting() || credentialStarted) return;
-                    if (code == FingerprintManager.FINGERPRINT_ERROR_CANCELED) finish("AUTH_CANCELED");
-                    else credentials();
-                }
-            }, new Handler(Looper.getMainLooper()));
+                    .setNegativeButtonText(LocaleController.getString(R.string.WalletUseDevicePasscode))
+                    .build());
         }
 
         private boolean waiting() { return !expired && latch.getCount() != 0; }
@@ -193,8 +201,15 @@ public final class GramWalletStorageAuth {
 
         private void stopBiometrics() {
             try { if (cancellation != null) cancellation.cancel(); } catch (Exception e) { FileLog.e(e); }
-            try { if (fingerprintDialog != null) fingerprintDialog.dismiss(); } catch (Exception e) { FileLog.e(e); }
-            fingerprintDialog = null;
+            try { if (compatPrompt != null) compatPrompt.cancelAuthentication(); } catch (Exception e) { FileLog.e(e); }
+            compatPrompt = null;
+            if (fingerprintHost != null) {
+                try {
+                    activity.getSupportFragmentManager().beginTransaction()
+                            .remove(fingerprintHost).commitAllowingStateLoss();
+                } catch (Exception e) { FileLog.e(e); }
+                fingerprintHost = null;
+            }
         }
 
     }
