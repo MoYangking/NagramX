@@ -3,7 +3,7 @@
 # Save diagnostic evidence even when the app dies from a native signal.
 set -Eeuo pipefail
 
-PACKAGE=nu.gpu.nagram
+PACKAGE=${NAGRAMX_TEST_PACKAGE:-nu.gpu.nagram}
 OUT="${GITHUB_WORKSPACE:-$(pwd)}/emulator-diagnostics"
 mkdir -p "$OUT"
 
@@ -38,6 +38,12 @@ if ! unzip -Z1 "$APK" | grep '^lib/x86_64/' > "$OUT/native-libraries.txt"; then
   exit 1
 fi
 
+APK_PACKAGE=$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+echo "APK package: $APK_PACKAGE; test package: $PACKAGE" | tee "$OUT/apk-identity.txt"
+if [ "$APK_PACKAGE" != "$PACKAGE" ]; then
+  echo "::error::APK package does not match test target: $APK_PACKAGE != $PACKAGE"
+  exit 1
+fi
 APKSIGNER="${ANDROID_HOME}/build-tools/36.0.0/apksigner"
 "$APKSIGNER" verify --print-certs "$APK" | tee "$OUT/apk-signing-certificate.txt"
 

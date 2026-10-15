@@ -28,6 +28,8 @@ jobs:
         run: python3 Tools/scripts/check_android_jni_abi.py
       - name: Apply AGP 9 Media3 compatibility shim
         run: python3 Tools/scripts/prepare_telegram_media3.py
+      - name: Prepare collision-free standalone CI APK identity
+        run: python3 Tools/scripts/prepare_ci_parallel_install.py
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
@@ -73,12 +75,19 @@ jobs:
 
           APK_FILE=$(find TMessagesProj/build/outputs/apk -name '*arm64-v8a*.apk' -print -quit)
           test -n "$APK_FILE"
+          APK_PACKAGE=$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK_FILE" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+          test "$APK_PACKAGE" = "nu.gpu.nagram.moyangtest"
+          APK_DIR=$(dirname "$APK_FILE")
+          echo "package=$APK_PACKAGE" | tee "$APK_DIR/apk-identity.txt"
           "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify --print-certs "$APK_FILE" \
             | tee "$(dirname "$APK_FILE")/apk-signing-certificate.txt"
-          echo "APK=$(dirname "$APK_FILE")" >> "$GITHUB_ENV"
+          APK_NAME=$(basename "$APK_FILE")
+          test "$APK_NAME" != "${APK_NAME#NagramX-}"
+          mv "$APK_FILE" "$APK_DIR/NagramX-Standalone-${APK_NAME#NagramX-}"
+          echo "APK=$APK_DIR" >> "$GITHUB_ENV"
       - name: Upload Artifacts
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: Debug
+          name: NagramX-Standalone-ARM64
           path: ${{ env.APK }}
