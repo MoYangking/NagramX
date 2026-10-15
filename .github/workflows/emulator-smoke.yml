@@ -26,6 +26,8 @@ jobs:
           submodules: recursive
       - name: Guard NagramX custom features and JNI ABI
         run: python3 Tools/scripts/check_nagramx_upstream_preservation.py
+      - name: Validate Lottie JNI and legacy VoIP interfaces
+        run: python3 Tools/scripts/check_android_jni_abi.py
       - name: Apply AGP 9 Media3 compatibility shim
         run: python3 Tools/scripts/prepare_telegram_media3.py
       - name: Set up Java 21
@@ -43,6 +45,11 @@ jobs:
         run: |
           echo "sdk.dir=$ANDROID_HOME" >> local.properties
           sed -i 's/signingConfig = signingConfigs.release//g' TMessagesProj/build.gradle
+      - name: Restore reusable CI Debug signing identity
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: nagramx-emulator-debug-keystore-v1
       - name: Build native x86_64 Debug APK for emulator
         env:
           LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}

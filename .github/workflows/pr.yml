@@ -5,7 +5,6 @@ on:
     types: [opened, reopened, synchronize]
     paths-ignore:
       - '**.md'
-      - '**.xml'
 
 concurrency:
   group: nagramx-pr-${{ github.event.pull_request.number }}
@@ -25,6 +24,8 @@ jobs:
           submodules: recursive
       - name: Guard NagramX custom features and JNI ABI
         run: python3 Tools/scripts/check_nagramx_upstream_preservation.py
+      - name: Validate Lottie JNI and legacy VoIP interfaces
+        run: python3 Tools/scripts/check_android_jni_abi.py
       - name: Apply AGP 9 Media3 compatibility shim
         run: python3 Tools/scripts/prepare_telegram_media3.py
       - name: Set up JDK
@@ -58,6 +59,11 @@ jobs:
           sed -i 's/signingConfig = signingConfigs.release//g' TMessagesProj/build.gradle
           NATIVE_TARGET=SKIP ./gradlew TMessagesProj:compileDebugJavaWithJavac --no-configuration-cache
 
+      - name: Restore reusable CI Debug signing identity
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: nagramx-pr-debug-keystore-v1
       - name: Debug Build
         run: |
           export LOCAL_PROPERTIES="${{ secrets.LOCAL_PROPERTIES }}"
@@ -65,10 +71,13 @@ jobs:
           sed -i 's/signingConfig = signingConfigs.release//g' TMessagesProj/build.gradle
           ./gradlew TMessagesProj:assembleDebug
 
-          APK=$(find TMessagesProj/build/outputs/apk -name '*arm64-v8a*.apk')
-          APK=$(dirname $APK)
-          echo "APK=$APK" >> $GITHUB_ENV
+          APK_FILE=$(find TMessagesProj/build/outputs/apk -name '*arm64-v8a*.apk' -print -quit)
+          test -n "$APK_FILE"
+          "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify --print-certs "$APK_FILE" \
+            | tee "$(dirname "$APK_FILE")/apk-signing-certificate.txt"
+          echo "APK=$(dirname "$APK_FILE")" >> "$GITHUB_ENV"
       - name: Upload Artifacts
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: Debug
