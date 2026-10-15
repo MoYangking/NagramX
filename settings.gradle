@@ -25,3 +25,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "NagramX"
 include ':TMessagesProj'
+
+// Pinned upstream Telegram Android 13.0.2 Media3 modules.
+gradle.ext.androidxMediaModulePrefix = 'TMessagesProj_Modules:media3:media-'
+apply from: file('TMessagesProj_Modules/media/core_settings.gradle')
