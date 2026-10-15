@@ -1,0 +1,73 @@
+name: Telegram upstream 13.0.2 port (staging)
+
+on:
+  push:
+    branches:
+      - sync/telegram-13.0.2
+    paths:
+      - Tools/scripts/telegram_upstream_port.py
+      - .github/workflows/telegram-upstream-port.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: telegram-upstream-port-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  port:
+    if: github.repository == 'MoYangking/NagramX'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      TELEGRAM_BASE_SHA: 4e1a61eca6c9b6ee3aa9c35cf8c70554750f2439
+      TELEGRAM_LATEST_SHA: f32ffeec763f0bdbf4bec25b52d654f77bff733d
+    steps:
+      - name: Checkout NagramX staging branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Fetch pinned official Telegram source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git remote add telegram-upstream https://github.com/DrKLO/Telegram.git
+          git fetch --no-tags --depth=1 --filter=blob:none telegram-upstream \
+            "$TELEGRAM_BASE_SHA:refs/remotes/telegram-upstream/base" \
+            "$TELEGRAM_LATEST_SHA:refs/remotes/telegram-upstream/latest"
+          git show -s --format='%H %s' "$TELEGRAM_BASE_SHA"
+          git show -s --format='%H %s' "$TELEGRAM_LATEST_SHA"
+
+      - name: Three-way port clean Java, resource, and asset changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile Tools/scripts/telegram_upstream_port.py
+          python3 Tools/scripts/telegram_upstream_port.py
+          git diff --stat
+
+      - name: Commit only successful ports and conflict report
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A -- TMessagesProj/src/main/java TMessagesProj/src/main/res TMessagesProj/src/main/assets docs/telegram-upstream-sync.md
+          if git diff --cached --quiet; then
+            echo 'No changes to commit.'
+          else
+            git commit -m 'chore(sync): stage conflict-free Telegram 13.0.2 upstream changes'
+            git push origin "HEAD:refs/heads/${GITHUB_REF#refs/heads/}"
+          fi
+
+      - name: Publish conflict report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-13.0.2-port-report
+          path: docs/telegram-upstream-sync.md
+          if-no-files-found: warn
