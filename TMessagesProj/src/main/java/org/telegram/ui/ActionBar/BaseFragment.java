@@ -261,9 +261,12 @@ public abstract class BaseFragment {
         this.fragmentView = fragmentView;
     }
 
+    // Telegram 13 glass effect engine for inherited screens.
+    protected final org.telegram.utils.glass.GlassEngine glassEngine = new org.telegram.utils.glass.GlassEngine();
+
     public View performCreateView(Context context) {
         if (!BuildConfig.DEBUG) {
-            return createView(context);
+            return performCreateViewImpl(context);
         }
 
         final String className = getClass().getSimpleName();
@@ -271,10 +274,20 @@ public abstract class BaseFragment {
         final String sectionName = TextUtils.isEmpty(className) ? sectionNameBase : (sectionNameBase + className);
         Trace.beginSection(sectionName);
         try {
-            return createView(context);
+            return performCreateViewImpl(context);
         } finally {
             Trace.endSection();
         }
+    }
+
+    private View performCreateViewImpl(Context context) {
+        View view = createView(context);
+        onViewCreated(view);
+        return view;
+    }
+
+    protected void onViewCreated(View view) {
+        glassEngine.setRoot(view);
     }
 
     protected View createView(Context context) {

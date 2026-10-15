@@ -23,7 +23,9 @@ subprojects {
                     sourceCompatibility = JavaVersion.VERSION_21
                     targetCompatibility = JavaVersion.VERSION_21
 
-                    coreLibraryDesugaringEnabled = true
+                    // Only the NagramX app declares a coreLibraryDesugaring dependency.
+                    // AGP 9 rejects enabling desugaring in dependent Media3 library modules without one.
+                    coreLibraryDesugaringEnabled = (project.path == ':TMessagesProj')
                 }
 
                 kotlin {

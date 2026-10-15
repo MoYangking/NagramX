@@ -505,7 +505,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
     protected void dispatchDraw(Canvas canvas) {
         canvas.save();
         final float s = bounce.getScale(.02f);
-        canvas.scale(s, s, getWidth() / 2f, getHeight() - ActionBar.getCurrentActionBarHeight() / 2f);
+        canvas.scale(s, s, getPivotX(), getHeight() - ActionBar.getCurrentActionBarHeight() / 2f);
         super.dispatchDraw(canvas);
         canvas.restore();
     }
@@ -1861,7 +1861,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
             width = Math.max(width, subtitleTextView.getExactWidthIncludeDrawables());
         }
         if (hasVisibleAvatar()) {
-            width += dp(52 + 16);
+            width += dp(52 + 18);
         } else {
             width += dp(34);
         }
