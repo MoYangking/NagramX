@@ -30,7 +30,7 @@ if [ -z "$APK" ]; then
   echo '::error::No Debug APK was produced'
   exit 1
 fi
-if ! unzip -Z1 "$APK" | grep -q '^lib/x86_64/'; then
+if ! unzip -Z1 "$APK" | grep '^lib/x86_64/' > /dev/null; then
   echo '::error::Debug APK does not contain x86_64 native libraries'
   exit 1
 fi
