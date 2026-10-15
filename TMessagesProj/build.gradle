@@ -228,6 +228,8 @@ dependencies {
     implementation project(':TMessagesProj_Modules:media3:media-lib-decoder-ffmpeg')
     implementation project(':TMessagesProj_Modules:media3:media-lib-session')
     implementation 'androidx.webkit:webkit:1.14.0'
+    // Telegram 13.0.2 TON wallet streaming WebSocket client.
+    implementation 'com.neovisionaries:nv-websocket-client:2.14'
     // official
     implementation 'androidx.core:core-ktx:1.19.0'
     implementation 'androidx.palette:palette-ktx:1.0.0'
