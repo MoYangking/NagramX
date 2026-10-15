@@ -177,3 +177,17 @@ NagramX-specific files and customizations are preserved where changes conflict.
 Before merging, manually resolve all conflicts, integrate JNI/Gradle/manifest
 and establish that Gradle builds and the NagramX feature regression tests pass.
 Keep this change in a draft pull request until those gates pass.
+
+## Follow-up integration commits (after the first-pass report)
+
+The first-pass statistics above are a snapshot, not the current totals.
+
+- [2e8a611](https://github.com/MoYangking/NagramX/commit/2e8a61182685e2ce8a1641a30b793313ad530783): restore the NagramX legacy ExoPlayer source subtree, which its custom media classes still depend on.
+- [a6a0932](https://github.com/MoYangking/NagramX/commit/a6a0932e95771c70c1e1547dfe12b4ff2a962bb3): manually resolve five conflicts while preserving NagramX custom QR codes, spoiler preferences, media-session behavior, and TL parse handling.
+- [c38aeb8](https://github.com/MoYangking/NagramX/commit/c38aeb8051a2d984f89ea12cd35b4242b185455c): add the official pinned Telegram Android 13.0.2 Media3 git submodule (Arseny271/media), five Gradle module dependencies, and WebKit; remove the duplicate upstream ResLottieMeta source while preserving NagramX's existing Lottie metadata generator.
+- [881d9f3](https://github.com/MoYangking/NagramX/commit/881d9f3fe6e6fb69daeabc9a12899e94cf540998): manually reconcile three more conflicts covering the official Bluetooth routing, vibration handling, and media browsing.
+- [17707fe](https://github.com/MoYangking/NagramX/commit/17707fe7454c666c1fb1fb834b0e13dfdf66d1bc): create the Gradle 9.x intermediate Media3 project directory.
+
+This reduces the 46 originally reported content conflicts to **38 yet to be reconciled**, before build-detected integration problems. The original deletion count of 4,820 also predates the legacy source restoration.
+
+**Still incomplete:** source compatibility, 38 unresolved conflict files, official native/JNI/CMake and submodule changes beyond Media3, the Android manifest, APK builds, and real-device feature tests. Neither a successful first-pass GitHub Action nor the official upstream commit SHA is evidence of a working NagramX 13.0.2 APK. Do not merge/release until validated.
