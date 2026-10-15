@@ -191,3 +191,35 @@ The first-pass statistics above are a snapshot, not the current totals.
 This reduces the 46 originally reported content conflicts to **38 yet to be reconciled**, before build-detected integration problems. The original deletion count of 4,820 also predates the legacy source restoration.
 
 **Still incomplete:** source compatibility, 38 unresolved conflict files, official native/JNI/CMake and submodule changes beyond Media3, the Android manifest, APK builds, and real-device feature tests. Neither a successful first-pass GitHub Action nor the official upstream commit SHA is evidence of a working NagramX 13.0.2 APK. Do not merge/release until validated.
+
+## 2026-10-15 continued integration
+
+These commits are **newer** than the historical 38-conflict note above. Recompute the remaining manual-conflict count from the actual current branch before treating it as a live metric.
+
+- [c80c50d](https://github.com/MoYangking/NagramX/commit/c80c50d0822c738d8c78fdd29fac84407f195c65): pinned AGP 9 Media3 compatibility preparation; run `python3 Tools/scripts/prepare_telegram_media3.py` after recursive submodule checkout.
+- [cbb6499](https://github.com/MoYangking/NagramX/commit/cbb649972e00de6114c8299e0e2840a81fbbaf45): staged native Telegram 13.0.2 TLSHello and download-budget updates with conflict-free three-way merges for customized NagramX proxy, IPv6 and multi-account JNI/C++ code.
+- [572a6a0](https://github.com/MoYangking/NagramX/commit/572a6a0691b4db117e3fc8318c16ce13097b683f): scope core library desugaring to NagramX app; add upstream menu text/subtext methods and avatar fixes while retaining long-press menus.
+- [d2d54d0](https://github.com/MoYangking/NagramX/commit/d2d54d0bde5a6c035deb9e7a93103f303d862059): merge official ActionBar / RLottie behavior while retaining NagramX's title, animation and decoration settings.
+- [4cb69ea](https://github.com/MoYangking/NagramX/commit/4cb69ea963382971f5cb5f24b05991c4af2f07f4): retain the hidden default folder tab and AI transcription integration, add upstream null checks and animation API changes.
+- [77947bc](https://github.com/MoYangking/NagramX/commit/77947bcfbd633d53aecbb999d31a198321302b28): introduce source-level preservation assertions for NagramX-specific integration points and JNI descriptor.
+- [2ae574c](https://github.com/MoYangking/NagramX/commit/2ae574c9d3139a028dc84aa5ba79a7525409c4bf): resolve older NagramX BoringSSL's AES-IGE header location without replacing the crypto dependency.
+- [261f156](https://github.com/MoYangking/NagramX/commit/261f1560536aa4878df6e2869563815dfb7bd953): run Java compilation before native build in CI, avoid wasting native compilation time on Java failures.
+- [f6c5541](https://github.com/MoYangking/NagramX/commit/f6c5541225bda654e695c1d40d27eda18a0fc54d): add 13.0.2 TON and TC deep-link intent filters without discarding NagramX manifest customizations.
+
+### Local staging validation commands
+
+After checking out this feature branch and initializing git submodules recursively:
+
+```bash
+git submodule update --init --recursive
+python3 Tools/scripts/check_nagramx_upstream_preservation.py
+python3 Tools/scripts/prepare_telegram_media3.py
+NATIVE_TARGET=SKIP ./gradlew TMessagesProj:compileDebugJavaWithJavac --no-configuration-cache
+./gradlew TMessagesProj:assembleDebug
+```
+
+These commands assume an Android SDK and any existing NagramX signing configuration are available. **The pinned Media3 submodule compatibility shim is a reproducible working-tree patch**; it must be applied again on a fresh checkout. It does not change the gitlink revision.
+
+### Known incomplete work
+
+The port has not been validated as a functional 13.0.2 release. Unreconciled or partially reconciled high-risk areas still include `ChatActivity`, `ApplicationLoader`, `MediaController`, `LocaleController`, `SharedConfig`, `Emoji`, `LaunchActivity`, `LoginActivity`, `SettingsActivity`, `PeerColorActivity`, `PasscodeView`, native build dependencies, and actual Android/Telegram runtime behavior. Preserve existing NagramX app IDs, settings, proxy providers and custom features as those are integrated. **Do not merge the draft PR or distribute a release APK before a successful build and device testing.**
