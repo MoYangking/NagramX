@@ -31,7 +31,9 @@ if [ -z "$APK" ]; then
   echo '::error::No x86_64 Debug APK was produced'
   exit 1
 fi
-if ! unzip -Z1 "$APK" | grep -q '^lib/x86_64/'; then
+# Consume the complete ZIP listing: grep -q would close the pipe early and
+# trigger unzip SIGPIPE under pipefail, falsely reporting missing native libs.
+if ! unzip -Z1 "$APK" | grep '^lib/x86_64/' > "$OUT/native-libraries.txt"; then
   echo '::error::Debug APK lacks the x86_64 native libraries'
   exit 1
 fi
