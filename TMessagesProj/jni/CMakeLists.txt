@@ -58,6 +58,7 @@ add_library(tgnet STATIC
         tgnet/Connection.cpp
         tgnet/ConnectionSession.cpp
         tgnet/ConnectionsManager.cpp
+        tgnet/TLSHello.cpp
         tgnet/ConnectionSocket.cpp
         tgnet/Datacenter.cpp
         tgnet/EventObject.cpp
