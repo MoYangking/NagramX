@@ -375,6 +375,24 @@ public class ItemOptions {
         return add(iconResId, null, text, iconColorKey, textColorKey, onLongClickListener, onClickListener);
     }
 
+    // Original NagramX long-press menu behavior is retained in the underlying add(...).
+    // Telegram 13.0.2 additionally supports an optional subtext for icon menu items.
+    public ItemOptions add(int iconResId, CharSequence text, CharSequence subtext, Runnable onClickListener) {
+        return add(iconResId, null, text, subtext, Theme.key_actionBarDefaultSubmenuItemIcon, Theme.key_actionBarDefaultSubmenuItem, onClickListener);
+    }
+
+    public ItemOptions add(int iconResId, Drawable iconDrawable, CharSequence text, int iconColorKey, int textColorKey, Runnable onClickListener) {
+        return add(iconResId, iconDrawable, text, iconColorKey, textColorKey, null, onClickListener);
+    }
+
+    public ItemOptions add(int iconResId, Drawable iconDrawable, CharSequence text, CharSequence subtext, int iconColorKey, int textColorKey, Runnable onClickListener) {
+        ItemOptions result = add(iconResId, iconDrawable, text, iconColorKey, textColorKey, null, onClickListener);
+        if (context != null && !TextUtils.isEmpty(subtext) && subItem != null) {
+            subItem.setSubtext(subtext);
+        }
+        return result;
+    }
+
     public ItemOptions add(int iconResId, Drawable iconDrawable, CharSequence text, int iconColorKey, int textColorKey, Runnable onLongClickListener, Runnable onClickListener) {
         if (context == null) {
             return this;
