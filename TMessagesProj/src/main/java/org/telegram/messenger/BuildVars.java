@@ -40,8 +40,13 @@ public class BuildVars {
     // You can use this flag to disable Google Play Billing (If you're making fork and want it to be in Google Play)
     public static boolean IS_BILLING_UNAVAILABLE = false;
 
-    // works only on official app ids, disable on your forks
-    public static boolean SUPPORTS_PASSKEYS = Build.VERSION.SDK_INT >= 34;
+    // Passkeys for Telegram's relying-party domain require an Android app
+    // identity (package name AND signing certificate) approved by Telegram.
+    // Neither nu.gpu.nagram nor the CI-only nu.gpu.nagram.moyangtest APK is
+    // an approved official identity. Do not present a passkey option that
+    // cannot retrieve the user's existing Telegram credentials.
+    // Re-enable only if Telegram grants the distributed APK's identity access.
+    public static boolean SUPPORTS_PASSKEYS = false;
 
     static {
         APP_ID = BuildConfig.APP_ID;

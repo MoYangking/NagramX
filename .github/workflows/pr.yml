@@ -75,10 +75,17 @@ jobs:
 
           APK_FILE=$(find TMessagesProj/build/outputs/apk -name '*arm64-v8a*.apk' -print -quit)
           test -n "$APK_FILE"
-          APK_PACKAGE=$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK_FILE" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+          APK_METADATA=$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK_FILE" | grep '^package:')
+          APK_PACKAGE=$(printf '%s\n' "$APK_METADATA" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+          APK_VERSION_CODE=$(printf '%s\n' "$APK_METADATA" | sed -n "s/.*versionCode='\([^']*\)'.*/\1/p")
+          APK_VERSION_NAME=$(printf '%s\n' "$APK_METADATA" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")
+          EXPECTED_VERSION_CODE=$(sed -n 's/^APP_VERSION_CODE=//p' gradle.properties)
+          EXPECTED_VERSION_NAME=$(sed -n 's/^APP_VERSION_NAME=//p' gradle.properties)
           test "$APK_PACKAGE" = "nu.gpu.nagram.moyangtest"
+          test "$APK_VERSION_CODE" = "$EXPECTED_VERSION_CODE"
+          case "$APK_VERSION_NAME" in "$EXPECTED_VERSION_NAME"|"$EXPECTED_VERSION_NAME"-*) ;; *) echo "APK version name differs from Gradle property"; exit 1 ;; esac
           APK_DIR=$(dirname "$APK_FILE")
-          echo "package=$APK_PACKAGE" | tee "$APK_DIR/apk-identity.txt"
+          printf 'package=%s\nversionCode=%s\nversionName=%s\n' "$APK_PACKAGE" "$APK_VERSION_CODE" "$APK_VERSION_NAME" | tee "$APK_DIR/apk-identity.txt"
           "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify --print-certs "$APK_FILE" \
             | tee "$(dirname "$APK_FILE")/apk-signing-certificate.txt"
           APK_NAME=$(basename "$APK_FILE")

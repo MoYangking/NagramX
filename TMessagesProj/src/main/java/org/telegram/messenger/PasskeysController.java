@@ -28,9 +28,7 @@ import androidx.credentials.exceptions.GetCredentialException;
 import androidx.credentials.exceptions.GetCredentialInterruptedException;
 import androidx.credentials.exceptions.NoCredentialException;
 
-import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONStringer;
 import org.telegram.messenger.browser.Browser;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLObject;
@@ -40,8 +38,6 @@ import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.LaunchActivity;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.concurrent.Executors;
 
@@ -81,19 +77,10 @@ public class PasskeysController {
                 }
 
                 final String requestJson;
-                String rpId;
-                byte[] clientDataHash;
-                String clientDataJSON;
                 try {
                     final JSONObject obj = new JSONObject(res.options.data);
                     final JSONObject publicKeyObj = obj.getJSONObject("publicKey");
                     requestJson = publicKeyObj.toString();
-
-                    final JSONObject rpObj = publicKeyObj.getJSONObject("rp");
-                    rpId = "https://" + rpObj.getString("id");
-                    String challenge = publicKeyObj.getString("challenge");
-                    clientDataJSON = generateClientDataJSONRaw(false, challenge, rpId);
-                    clientDataHash = computeClientDataHash(clientDataJSON);
                 } catch (Exception e) {
                     FileLog.e(e);
                     done.run(null, e.getMessage());
@@ -101,7 +88,7 @@ public class PasskeysController {
                 }
 
                 final CreatePublicKeyCredentialRequest credentialRequest =
-                    new CreatePublicKeyCredentialRequest(requestJson, clientDataHash, false, rpId);
+                    new CreatePublicKeyCredentialRequest(requestJson);
 
                 try {
                     credentialManager.createCredential(context, credentialRequest, ktxCallback((res2, err2) -> {
@@ -136,7 +123,7 @@ public class PasskeysController {
                             final JSONObject response = json.getJSONObject("response");
                             final TL_account.inputPasskeyResponseRegister passkeyResponse = new TL_account.inputPasskeyResponseRegister();
                             passkeyResponse.client_data = new TLRPC.TL_dataJSON();
-                            passkeyResponse.client_data.data = clientDataJSON;
+                            passkeyResponse.client_data.data = new String(Base64.decode(response.getString("clientDataJSON"), Base64.URL_SAFE), StandardCharsets.UTF_8);
                             passkeyResponse.attestation_object = Base64.decode(response.getString("attestationObject"), Base64.URL_SAFE);
 
                             FileLog.d("AAGUID: " + bytesToHex(Arrays.copyOfRange(passkeyResponse.attestation_object, 67, 67 + 16)));
@@ -198,29 +185,20 @@ public class PasskeysController {
             }
 
             final String requestJson;
-            String rpId;
-            byte[] clientDataHash;
-            String clientDataJSON;
             try {
                 final JSONObject obj = new JSONObject(res.options.data);
                 final JSONObject publicKeyObj = obj.getJSONObject("publicKey");
                 requestJson = publicKeyObj.toString();
-
-                rpId = "https://" + publicKeyObj.getString("rpId");
-                String challenge = publicKeyObj.getString("challenge");
-                clientDataJSON = generateClientDataJSONRaw(true, challenge, rpId);
-                clientDataHash = computeClientDataHash(clientDataJSON);
             } catch (Exception e) {
                 FileLog.e(e);
                 done.run(0L, null, e.getMessage());
                 return;
             }
 
-            final GetPublicKeyCredentialOption passkeyOption = new GetPublicKeyCredentialOption(requestJson, clientDataHash);
+            final GetPublicKeyCredentialOption passkeyOption = new GetPublicKeyCredentialOption(requestJson);
             final GetCredentialRequest request = new GetCredentialRequest.Builder()
                     .addCredentialOption(passkeyOption)
                     .setPreferImmediatelyAvailableCredentials(!clickedButton)
-                    .setOrigin(rpId)
                     .build();
 
             try {
@@ -246,7 +224,7 @@ public class PasskeysController {
                             final JSONObject response = json.getJSONObject("response");
                             final TL_account.inputPasskeyResponseLogin passkeyResponse = new TL_account.inputPasskeyResponseLogin();
                             passkeyResponse.client_data = new TLRPC.TL_dataJSON();
-                            passkeyResponse.client_data.data = clientDataJSON;
+                            passkeyResponse.client_data.data = new String(Base64.decode(response.getString("clientDataJSON"), Base64.URL_SAFE), StandardCharsets.UTF_8);
 
                             passkeyResponse.authenticator_data = Base64.decode(response.getString("authenticatorData"), Base64.URL_SAFE);
                             passkeyResponse.signature = Base64.decode(response.getString("signature"), Base64.URL_SAFE);
@@ -321,23 +299,6 @@ public class PasskeysController {
                 cancel[0].run();
             }
         };
-    }
-
-    public static byte[] computeClientDataHash(String clientDataJSON) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            return md.digest(clientDataJSON.getBytes(StandardCharsets.UTF_8));
-        } catch (NoSuchAlgorithmException e) {
-            return null;
-        }
-    }
-
-    public static String generateClientDataJSONRaw(boolean get, String challenge, String rpId) throws JSONException {
-        JSONObject clientData = new JSONObject();
-        clientData.put("type", get ? "webauthn.get" : "webauthn.create");
-        clientData.put("challenge", challenge);
-        clientData.put("origin", rpId);
-        return clientData.toString();
     }
 
     public static void openSettings(Activity activity) {

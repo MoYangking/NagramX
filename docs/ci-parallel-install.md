@@ -19,6 +19,7 @@ The new CI Debug signing cache helps keep *new* CI certificates consistent, but 
 
 - The isolated application identity is applied by `Tools/scripts/prepare_ci_parallel_install.py` **only in CI checkouts**. Production/release sources and signing configurations are untouched.
 - The script temporarily duplicates the original Google Services resource entry under the test ID so Gradle can build. This does **not** create an authentic Firebase Android application registration; push notifications, Google-linked services, and anything tied to the original package signature may not work. Production use requires registering the new package with the owner's Firebase project or choosing a proper release signing setup.
+- The test APK cannot access official Telegram passkeys because Telegram's relying-party domain has not authorized this package name and Debug signing certificate. The passkey option is intentionally hidden; use code or QR login. See [Passkeys and versioning](passkeys-and-versioning.md).
 - Passing the x86_64 Android 15 launch smoke test checks only install, foreground, 40-second process survival, and observed startup crashes. It does not cover account login, message sync, calls, or complete NagramX features.
 
 ## If installation still fails
