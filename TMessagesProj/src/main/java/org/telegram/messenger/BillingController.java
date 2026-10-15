@@ -184,7 +184,7 @@ public class BillingController implements PurchasesUpdatedListener, BillingClien
             throw new IllegalStateException("Billing: Controller should be ready for this call!");
         }
         billingClient.queryProductDetailsAsync(QueryProductDetailsParams.newBuilder().setProductList(products).build(), (billingResult, queryProductDetailsResult) ->
-            responseListener.onProductDetailsResponse(billingResult, queryProductDetailsResult.getProductDetailsList()));
+            responseListener.onProductDetailsResponse(billingResult, queryProductDetailsResult));
     }
 
     /**
