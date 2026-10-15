@@ -19,6 +19,8 @@ jobs:
         with:
           fetch-depth: 1
           submodules: recursive
+      - name: Guard NagramX custom features and JNI ABI
+        run: python3 Tools/scripts/check_nagramx_upstream_preservation.py
       - name: Apply AGP 9 Media3 compatibility shim
         run: python3 Tools/scripts/prepare_telegram_media3.py
       - name: Set up JDK
