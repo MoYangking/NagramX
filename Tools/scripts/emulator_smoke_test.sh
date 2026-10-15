@@ -23,9 +23,15 @@ collect_diagnostics() {
 }
 trap collect_diagnostics EXIT
 
-APK=$(find TMessagesProj/build/outputs/apk -type f -name '*-x86_64.apk' -print -quit)
+echo 'APK outputs:'
+find TMessagesProj/build/outputs/apk -type f -name '*.apk' -print
+APK=$(find TMessagesProj/build/outputs/apk/debug -type f -name '*.apk' -print -quit)
 if [ -z "$APK" ]; then
-  echo '::error::No x86_64 APK was produced'
+  echo '::error::No Debug APK was produced'
+  exit 1
+fi
+if ! unzip -Z1 "$APK" | grep -q '^lib/x86_64/'; then
+  echo '::error::Debug APK does not contain x86_64 native libraries'
   exit 1
 fi
 
